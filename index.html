@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>海外法条查询与翻译</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F5F0; --surface: #FFFFFF; --surface2: #F0EDE6;
+    --border: #DDD9CF; --border-strong: #C4BFB3;
+    --text: #1A1814; --text-muted: #7A756A; --text-faint: #B0AB9E;
+    --accent: #2B5BA8; --accent-light: #EBF0FA; --accent-dark: #1A3D7A;
+    --green: #1A6B4A; --red: #B83232;
+    --eu: #003399; --eu-light: #E8EDF8;
+    --us: #B22234; --us-light: #F8E8EA;
+    --sg: #C0392B; --sg-light: #FDE8E9;
+    --uk: #012169; --uk-light: #E8EAF4;
+    --radius: 8px; --radius-lg: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.6; }
+
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header-logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; color: var(--text); letter-spacing: -0.02em; }
+  .logo-icon { width: 28px; height: 28px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; }
+  .header-tag { font-size: 11px; background: var(--accent-light); color: var(--accent); padding: 3px 8px; border-radius: 99px; font-weight: 500; }
+  .api-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border-strong); transition: background 0.3s; }
+  .dot.active { background: #22C55E; }
+
+  .layout { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 56px); }
+
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+  .sb-sec { padding: 1.25rem 1.25rem 0; }
+  .sb-sec:last-child { padding-bottom: 1.25rem; }
+  .sb-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px; }
+  .divider { height: 1px; background: var(--border); margin: 1.25rem 0 0; }
+
+  .key-wrap { position: relative; }
+  .key-wrap input { width: 100%; padding: 8px 60px 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; font-family: 'DM Mono', monospace; background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
+  .key-wrap input:focus { border-color: var(--accent); }
+  .key-save { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); padding: 4px 10px; background: var(--accent); color: white; border: none; border-radius: 5px; font-size: 11px; cursor: pointer; font-weight: 500; }
+  .key-save:hover { background: var(--accent-dark); }
+  .key-hint { font-size: 11px; color: var(--text-faint); margin-top: 6px; line-height: 1.5; }
+  .key-hint a { color: var(--accent); text-decoration: none; }
+  .key-hint a:hover { text-decoration: underline; }
+
+  .region-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+  .rtab { padding: 8px 6px; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; text-align: center; font-size: 12px; font-weight: 500; transition: all 0.15s; background: var(--bg); color: var(--text-muted); }
+  .rtab:hover { border-color: var(--border-strong); color: var(--text); }
+  .rtab.eu { color: var(--eu); background: var(--eu-light); border-color: var(--eu); }
+  .rtab.us { color: var(--us); background: var(--us-light); border-color: var(--us); }
+  .rtab.sg { color: var(--sg); background: var(--sg-light); border-color: var(--sg); }
+  .rtab.uk { color: var(--uk); background: var(--uk-light); border-color: var(--uk); }
+
+  .law-list { display: flex; flex-direction: column; gap: 5px; }
+  .law-item { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all 0.15s; background: var(--bg); }
+  .law-item:hover { border-color: var(--border-strong); background: var(--surface2); }
+  .law-item.selected { border-color: var(--accent); background: var(--accent-light); }
+  .law-name { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.4; }
+  .law-desc { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+  .url-row { display: flex; gap: 6px; }
+  .url-row input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; }
+  .url-row input:focus { border-color: var(--accent); }
+  .fetch-btn { padding: 8px 12px; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+  .fetch-btn:hover { background: var(--accent-dark); }
+  .fetch-btn:disabled { background: var(--surface2); color: var(--text-faint); cursor: not-allowed; }
+  .fetch-status { font-size: 11px; color: var(--text-muted); margin-top: 6px; min-height: 16px; }
+  .fetch-status.err { color: var(--red); }
+  .fetch-status.ok { color: var(--green); }
+
+  .supported-hint { font-size: 11px; color: var(--text-faint); margin-top: 8px; line-height: 1.6; }
+  .supported-hint code { font-family: 'DM Mono', monospace; font-size: 10px; background: var(--surface2); padding: 1px 4px; border-radius: 3px; color: var(--text-muted); }
+
+  .paste-area { width: 100%; min-height: 80px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; font-family: inherit; background: var(--bg); color: var(--text); resize: vertical; outline: none; transition: border-color 0.15s; line-height: 1.6; }
+  .paste-area:focus { border-color: var(--accent); }
+  .use-paste-btn { width: 100%; margin-top: 6px; padding: 7px; background: var(--accent-light); border: 1px solid var(--accent); border-radius: var(--radius); font-size: 12px; color: var(--accent); font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .use-paste-btn:hover { background: var(--accent); color: white; }
+
+  .main { display: flex; flex-direction: column; }
+  .toolbar { padding: 1rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-shrink: 0; }
+  .toolbar-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .cur-law { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cur-meta { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .translate-btn { padding: 9px 20px; background: var(--green); color: white; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: background 0.15s; white-space: nowrap; flex-shrink: 0; }
+  .translate-btn:hover:not(:disabled) { background: #145A3D; }
+  .translate-btn:disabled { background: var(--surface2); color: var(--text-faint); cursor: not-allowed; }
+  .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .panes { display: grid; grid-template-columns: 1fr 1fr; height: calc(100vh - 56px - 65px - 28px); }
+  .pane { display: flex; flex-direction: column; overflow: hidden; border-right: 1px solid var(--border); }
+  .pane:last-child { border-right: none; }
+  .pane-hd { padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .pane-title { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+  .pbadge { font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 500; }
+  .badge-en { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); }
+  .badge-zh { background: var(--accent-light); color: var(--accent); }
+  .pane-body { flex: 1; overflow-y: auto; padding: 1.25rem 1.5rem; }
+  .pane-text { font-size: 13px; line-height: 1.85; white-space: pre-wrap; word-break: break-word; color: var(--text); }
+  .pane-text.zh { font-family: 'Noto Serif SC', serif; font-size: 14px; line-height: 2; }
+  .placeholder { color: var(--text-faint); font-size: 13px; font-style: italic; padding-top: 2rem; text-align: center; }
+
+  .statusbar { padding: 6px 1.5rem; background: var(--surface); border-top: 1px solid var(--border); font-size: 11px; color: var(--text-faint); flex-shrink: 0; min-height: 28px; display: flex; align-items: center; }
+  .statusbar.ok { color: var(--green); }
+  .statusbar.err { color: var(--red); }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-logo">
+    <div class="logo-icon">⚖</div>
+    海外法条查询与翻译
+    <span class="header-tag">DeepSeek 驱动</span>
+  </div>
+  <div class="api-status">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">未配置 API Key</span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+
+    <div class="sb-sec" style="padding-top:1.25rem">
+      <div class="sb-label">DeepSeek API Key</div>
+      <div class="key-wrap">
+        <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxx" oninput="onKeyInput()" />
+        <button class="key-save" onclick="saveKey()">保存</button>
+      </div>
+      <p class="key-hint">没有 Key？<a href="https://platform.deepseek.com" target="_blank">点这里申请</a> → 登录后点「API Keys」→「Create new secret key」</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sb-sec" style="padding-top:1.25rem">
+      <div class="sb-label">输入网址直接抓取</div>
+      <div class="url-row">
+        <input type="text" id="urlInput" placeholder="粘贴法条页面网址…" />
+        <button class="fetch-btn" id="fetchBtn" onclick="fetchPage()">抓取</button>
+      </div>
+      <div class="fetch-status" id="fetchStatus"></div>
+      <div class="supported-hint">
+        支持的网站：<code>eur-lex.europa.eu</code> · <code>legislation.gov.uk</code> · <code>sso.agc.gov.sg</code> · <code>uscode.house.gov</code> · <code>law.cornell.edu</code> 等官方法律网站
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sb-sec" style="padding-top:1.25rem">
+      <div class="sb-label">选择地区</div>
+      <div class="region-tabs">
+        <div class="rtab active eu" onclick="selectRegion('eu',this)">🇪🇺 欧盟</div>
+        <div class="rtab" onclick="selectRegion('us',this)">🇺🇸 美国</div>
+        <div class="rtab" onclick="selectRegion('sg',this)">🇸🇬 新加坡</div>
+        <div class="rtab" onclick="selectRegion('uk',this)">🇬🇧 英国</div>
+      </div>
+      <div class="sb-label">常用法律条款</div>
+      <div class="law-list" id="lawList"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sb-sec" style="padding-top:1.25rem">
+      <div class="sb-label">或直接粘贴原文</div>
+      <textarea class="paste-area" id="pasteArea" placeholder="从官方网站复制英文法条，粘贴到这里…"></textarea>
+      <button class="use-paste-btn" onclick="usePaste()">使用此内容翻译 →</button>
+    </div>
+
+  </aside>
+
+  <main class="main">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="cur-law" id="lawTitle">请从左侧选择或输入法条</div>
+        <div class="cur-meta" id="lawMeta">支持抓取网址 · 内置常用法条 · 手动粘贴</div>
+      </div>
+      <button class="translate-btn" id="translateBtn" onclick="doTranslate()" disabled>
+        <div class="spinner" id="spinner"></div>
+        <span id="translateBtnText">翻译成中文</span>
+      </button>
+    </div>
+
+    <div class="panes">
+      <div class="pane">
+        <div class="pane-hd">
+          <span class="pane-title">原文</span>
+          <span class="pbadge badge-en">English</span>
+        </div>
+        <div class="pane-body">
+          <div class="pane-text" id="sourcePane"><div class="placeholder">从左侧选择法律或输入网址，原文将显示在这里</div></div>
+        </div>
+      </div>
+      <div class="pane">
+        <div class="pane-hd">
+          <span class="pane-title">中文翻译</span>
+          <span class="pbadge badge-zh">DeepSeek</span>
+        </div>
+        <div class="pane-body">
+          <div class="pane-text zh" id="resultPane"><div class="placeholder">点击右上角「翻译成中文」按钮</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="statusbar" id="statusBar">就绪</div>
+  </main>
+</div>
+
+<script>
+const LAWS = {
+  eu: [
+    { name: 'GDPR — 第5条：处理原则', desc: 'General Data Protection Regulation', text: `Article 5 – Principles relating to processing of personal data\n\n1. Personal data shall be:\n(a) processed lawfully, fairly and in a transparent manner in relation to the data subject ('lawfulness, fairness and transparency');\n(b) collected for specified, explicit and legitimate purposes and not further processed in a manner that is incompatible with those purposes ('purpose limitation');\n(c) adequate, relevant and limited to what is necessary in relation to the purposes for which they are processed ('data minimisation');\n(d) accurate and, where necessary, kept up to date ('accuracy');\n(e) kept in a form which permits identification of data subjects for no longer than is necessary ('storage limitation');\n(f) processed in a manner that ensures appropriate security of the personal data ('integrity and confidentiality').\n\n2. The controller shall be responsible for, and be able to demonstrate compliance with, paragraph 1 ('accountability').` },
+    { name: 'GDPR — 第17条：被遗忘权', desc: 'Right to erasure', text: `Article 17 – Right to erasure ('right to be forgotten')\n\n1. The data subject shall have the right to obtain from the controller the erasure of personal data concerning him or her without undue delay and the controller shall have the obligation to erase personal data without undue delay where one of the following grounds applies:\n(a) the personal data are no longer necessary in relation to the purposes for which they were collected or otherwise processed;\n(b) the data subject withdraws consent on which the processing is based and where there is no other legal ground for the processing;\n(c) the data subject objects to the processing pursuant to Article 21(1) and there are no overriding legitimate grounds;\n(d) the personal data have been unlawfully processed;\n(e) the personal data have to be erased for compliance with a legal obligation.\n\n2. Where the controller has made the personal data public and is obliged pursuant to paragraph 1 to erase the personal data, the controller shall take reasonable steps to inform other controllers which are processing the personal data of the erasure request.` },
+    { name: 'AI 法案 — 第6条：高风险分类', desc: 'EU AI Act, Regulation 2024/1689', text: `Article 6 – Classification rules for high-risk AI systems\n\n1. An AI system shall be considered to be high-risk where both of the following conditions are fulfilled:\n(a) the AI system is intended to be used as a safety component of a product covered by the Union harmonisation legislation listed in Annex I;\n(b) the product is required to undergo a third-party conformity assessment pursuant to the Union harmonisation legislation listed in Annex I.\n\n2. In addition, AI systems referred to in Annex III shall be considered to be high-risk.\n\n3. By derogation from paragraph 2, an AI system referred to in Annex III shall not be considered to be high-risk where it does not pose a significant risk of harm to the health, safety or fundamental rights of natural persons.` },
+    { name: 'DMA — 第5条：守门人义务', desc: 'Digital Markets Act', text: `Article 5 – Obligations for gatekeepers\n\nThe gatekeeper shall:\n(a) refrain from combining personal data sourced from core platform services with personal data from any other services, unless the end user has provided consent;\n(b) refrain from using, in competition with business users, any data not publicly available which is generated through activities by those business users;\n(c) allow business users to offer the same products or services through third-party online intermediation services at different prices or conditions;\n(d) refrain from preventing or restricting business users from raising issues with any relevant public authority;\n(e) refrain from requiring business users or end users to use an identification service of the gatekeeper.` },
+  ],
+  us: [
+    { name: 'CCPA — §1798.100：访问权', desc: 'California Consumer Privacy Act', text: `California Civil Code §1798.100 – Right to Know\n\n(a) A consumer shall have the right to request that a business that collects a consumer's personal information disclose to that consumer the categories and specific pieces of personal information the business has collected.\n\n(b) A business that receives a verifiable consumer request shall promptly disclose and deliver, free of charge, the personal information required by this section. The information may be delivered by mail or electronically in a portable and readily useable format.\n\n(c) A business shall not be required to provide personal information to a consumer more than twice in a 12-month period.` },
+    { name: 'HIPAA — §164.502：最低必要原则', desc: 'Health Insurance Portability and Accountability Act', text: `45 CFR §164.502 – Uses and disclosures of protected health information\n\n(a) A covered entity may not use or disclose protected health information, except as permitted or required by this subpart.\n\n(b) Minimum necessary standard. When using or disclosing protected health information, a covered entity must make reasonable efforts to limit protected health information to the minimum necessary to accomplish the intended purpose.\n\nThe minimum necessary standard does not apply to:\n(i) Disclosures to a health care provider for treatment;\n(ii) Uses or disclosures made to the individual;\n(iii) Uses or disclosures made pursuant to an authorization;\n(iv) Disclosures to the Secretary in accordance with this subpart.` },
+    { name: 'Sherman Act — §1 & §2', desc: 'Sherman Antitrust Act', text: `15 U.S.C. §1 – Trusts in restraint of trade illegal\n\nEvery contract, combination in the form of trust or otherwise, or conspiracy, in restraint of trade or commerce among the several States, or with foreign nations, is declared to be illegal. Every person who shall make any contract or engage in any combination or conspiracy hereby declared to be illegal shall be deemed guilty of a felony, and shall be punished by fine not exceeding $100,000,000 if a corporation, or $1,000,000 for any other person, or by imprisonment not exceeding 10 years.\n\n15 U.S.C. §2 – Monopolizing trade\n\nEvery person who shall monopolize, or attempt to monopolize, or combine or conspire to monopolize any part of the trade or commerce among the several States, or with foreign nations, shall be deemed guilty of a felony with the same penalties as §1.` },
+  ],
+  sg: [
+    { name: 'PDPA — 第13条：目的与通知', desc: 'Personal Data Protection Act 2012', text: `Section 13 – Obligation to obtain consent\n\nAn organisation shall not collect, use or disclose personal data about an individual unless:\n(a) the individual gives, or is deemed to have given, consent to the collection, use or disclosure for such purpose; or\n(b) the collection, use or disclosure without consent is required or authorised under this Act or any other written law.\n\nSection 14 – Obligation to inform individual of purposes\n\n(1) Before collecting personal data, the organisation shall inform the individual of the purposes for the collection, use or disclosure.\n\n(2) An organisation shall inform an individual of the purposes on or before collecting the personal data from the individual.` },
+    { name: 'Companies Act — 第157条：董事义务', desc: 'Companies Act (Cap. 50)', text: `Section 157 – Duty and liability of officers\n\n(1) A director shall at all times act honestly and use reasonable diligence in the discharge of the duties of his office.\n\n(2) An officer or agent of a company shall not make improper use of any information acquired by virtue of his position to gain an advantage for himself or any other person or to cause detriment to the company.\n\n(3) An officer or agent who commits a breach shall be:\n(a) liable to the company for any profit made or damage suffered; and\n(b) guilty of an offence liable on conviction to a fine not exceeding $5,000 or imprisonment not exceeding one year.` },
+    { name: 'Employment Act — 第38条：工时规定', desc: 'Employment Act (Cap. 91A)', text: `Section 38 – Hours of work\n\n(1) No employer shall require any employee to work more than 8 hours in one day or more than 44 hours in one week.\n\n(2) No employer shall require any employee to work more than 6 consecutive hours without allowing a period of leisure of not less than 45 minutes.\n\n(3) Where by reason of the nature of the work it is necessary for the employee to work continuously for more than 6 hours, the employer shall allow a period of leisure of not less than 45 minutes as soon as practicable.\n\n(4) Where an employee is required to work overtime, the employee is entitled to overtime pay calculated in accordance with section 38A.` },
+  ],
+  uk: [
+    { name: 'Data Protection Act 2018 — 第2条', desc: 'UK GDPR implementation', text: `Section 2 – The GDPR\n\n(1) The GDPR is to be read in accordance with this Part and the other provisions of this Act.\n\n(2) Defined terms used in the GDPR have the same meaning in this Part.\n\n(3) This Part specifies rules applying in relation to the processing of personal data to which the GDPR applies, including:\n(a) exemptions from provisions of the GDPR,\n(b) restrictions on the right to obtain a copy of personal data, and\n(c) derogations from provisions of the GDPR permitted by Article 89 (research, statistics etc).\n\n(4) In the case of a conflict between a provision of the GDPR and a provision of this Act, the provision of this Act is to prevail if the conflict cannot be resolved by reading them together.` },
+    { name: 'Employment Rights Act 1996 — 第94条', desc: 'Right not to be unfairly dismissed', text: `Section 94 – The right\n\n(1) An employee has the right not to be unfairly dismissed by his employer.\n\nSection 98 – General\n\n(1) In determining whether the dismissal of an employee is fair or unfair, it is for the employer to show:\n(a) the reason for the dismissal, and\n(b) that it is a reason falling within subsection (2) or some other substantial reason justifying dismissal.\n\n(2) A reason falls within this subsection if it relates to:\n(a) the capability or qualifications of the employee,\n(b) the conduct of the employee,\n(c) redundancy, or\n(d) inability to continue work without contravention of a legal duty.\n\n(4) Whether the dismissal is fair depends on whether the employer acted reasonably or unreasonably, determined in accordance with equity and the substantial merits of the case.` },
+    { name: 'Companies Act 2006 — 第172条：促进公司成功', desc: 'Director duty to promote success', text: `Section 172 – Duty to promote the success of the company\n\n(1) A director must act in the way he considers, in good faith, would be most likely to promote the success of the company for the benefit of its members as a whole, having regard to:\n(a) the likely consequences of any decision in the long term,\n(b) the interests of the company's employees,\n(c) the need to foster business relationships with suppliers, customers and others,\n(d) the impact of operations on the community and the environment,\n(e) the desirability of maintaining a reputation for high standards of business conduct, and\n(f) the need to act fairly as between members.\n\n(3) This duty has effect subject to any enactment or rule of law requiring directors to consider or act in the interests of creditors.` },
+  ]
+};
+
+let currentRegion = 'eu';
+let sourceText = '';
+let apiKey = '';
+
+function onKeyInput() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  const ok = v.startsWith('sk-') && v.length > 10;
+  document.getElementById('statusDot').classList.toggle('active', ok);
+  document.getElementById('statusText').textContent = ok ? 'API Key 已就绪' : '未配置 API Key';
+}
+
+function saveKey() {
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (apiKey) { setStatus('✓ API Key 已保存', 'ok'); updateBtn(); }
+}
+
+function selectRegion(r, el) {
+  currentRegion = r;
+  document.querySelectorAll('.rtab').forEach(t => { t.className = 'rtab'; });
+  el.className = 'rtab active ' + r;
+  renderLaws();
+}
+
+function renderLaws() {
+  document.getElementById('lawList').innerHTML = LAWS[currentRegion].map((l, i) =>
+    `<div class="law-item" onclick="selectLaw(${i},this)">
+      <div class="law-name">${l.name}</div>
+      <div class="law-desc">${l.desc}</div>
+    </div>`
+  ).join('');
+}
+
+function selectLaw(i, el) {
+  document.querySelectorAll('.law-item').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  const law = LAWS[currentRegion][i];
+  setSource(law.text, law.name, law.desc);
+}
+
+function usePaste() {
+  const txt = document.getElementById('pasteArea').value.trim();
+  if (!txt) return;
+  setSource(txt, '自定义法条原文', '已从粘贴内容加载');
+}
+
+function setSource(text, title, meta) {
+  sourceText = text;
+  document.getElementById('sourcePane').textContent = text;
+  document.getElementById('resultPane').innerHTML = '<div class="placeholder">点击右上角「翻译成中文」按钮</div>';
+  document.getElementById('lawTitle').textContent = title;
+  document.getElementById('lawMeta').textContent = meta;
+  setStatus('原文已加载，点击右上角翻译', '');
+  updateBtn();
+}
+
+async function fetchPage() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return;
+  const btn = document.getElementById('fetchBtn');
+  const statusEl = document.getElementById('fetchStatus');
+  btn.disabled = true;
+  statusEl.textContent = '正在抓取页面…';
+  statusEl.className = 'fetch-status';
+  try {
+    const encodedUrl = encodeURIComponent(url);
+    const resp = await fetch(`/api/fetch-page?url=${encodedUrl}`);
+    const data = await resp.json();
+    if (!resp.ok) {
+      statusEl.textContent = data.error + (data.hint ? ' ' + data.hint : '');
+      statusEl.className = 'fetch-status err';
+    } else {
+      statusEl.textContent = '✓ 抓取成功，共 ' + data.text.length + ' 字符';
+      statusEl.className = 'fetch-status ok';
+      setSource(data.text, '网页抓取：' + data.domain, url);
+    }
+  } catch (e) {
+    statusEl.textContent = '抓取失败：' + e.message;
+    statusEl.className = 'fetch-status err';
+  }
+  btn.disabled = false;
+}
+
+function updateBtn() {
+  document.getElementById('translateBtn').disabled = !(sourceText && apiKey);
+}
+
+function setStatus(msg, type) {
+  const bar = document.getElementById('statusBar');
+  bar.textContent = msg;
+  bar.className = 'statusbar' + (type ? ' ' + type : '');
+}
+
+async function doTranslate() {
+  if (!apiKey || !sourceText) return;
+  const btn = document.getElementById('translateBtn');
+  const spinner = document.getElementById('spinner');
+  const btnText = document.getElementById('translateBtnText');
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  btnText.textContent = '翻译中…';
+  setStatus('正在调用 DeepSeek，请稍候…', '');
+
+  const resultPane = document.getElementById('resultPane');
+  resultPane.className = 'pane-text zh';
+  resultPane.textContent = '';
+
+  try {
+    const resp = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        max_tokens: 4000,
+        messages: [
+          { role: 'system', content: '你是一名专业的法律翻译专家，精通将英文法律文书翻译成规范的中文。请将用户提供的英文法条原文准确翻译成中文，要求：1. 保留原有的条款编号和层级结构；2. 使用规范的中文法律用语；3. 翻译忠实、准确、专业；4. 直接输出翻译结果，不需要任何额外说明。' },
+          { role: 'user', content: `请将以下英文法条翻译成中文：\n\n${sourceText}` }
+        ],
+        stream: true
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error?.message || `HTTP ${resp.status}`);
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let result = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const d = line.slice(6);
+        if (d === '[DONE]') continue;
+        try {
+          const delta = JSON.parse(d).choices?.[0]?.delta?.content || '';
+          result += delta;
+          resultPane.textContent = result;
+        } catch {}
+      }
+    }
+    setStatus('✓ 翻译完成', 'ok');
+  } catch (e) {
+    setStatus('错误：' + e.message, 'err');
+    resultPane.innerHTML = '<div class="placeholder">翻译失败，请检查 API Key 是否正确</div>';
+  }
+
+  btn.disabled = false;
+  spinner.style.display = 'none';
+  btnText.textContent = '翻译成中文';
+  updateBtn();
+}
+
+renderLaws();
+</script>
+</body>
+</html>
